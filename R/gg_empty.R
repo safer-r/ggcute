@@ -5,9 +5,9 @@
 #' @param text_size numeric value of the text size (in points).
 #' @param title character string of the graph title.
 #' @param title_size numeric value of the title size (in points).
-#' @param safer_check Single logical value. Perform some "safer" checks? If TRUE, checkings are performed before main code running (see https://github.com/safer-r): 1) correct lib_path argument value 2) required functions and related packages effectively present in local R lybraries and 3) R classical operators (like "<-") not overwritten by another package because of the R scope. Must be set to FALSE if this fonction is used inside another "safer" function to avoid pointless multiple checkings.
-#' @param lib_path Vector of characters specifying the absolute pathways of the directories containing the required packages for the function, if not in the default directories. Useful when R package are not installed in the default directories because of lack of admin rights.  More precisely, lib_path is passed through the new argument of .libPaths() so that the new library paths are unique(c(new, .Library.site, .Library)). Warning: .libPaths() is restored to the initial paths, after function execution. Ignored if NULL (default) or if the safer_check argument is FALSE: only the pathways specified by the current .libPaths() are used for package calling.
-#' @param error_text Single character string used to add information in error messages returned by the function, notably if the function is inside other functions, which is practical for debugging. Example: error_text = " INSIDE <PACKAGE_1>::<FUNCTION_1> INSIDE <PACKAGE_2>::<FUNCTION_2>.". If NULL, converted into "".
+#' @param safer_check Single logical value. Perform the "safer" checks? If \code{TRUE}, checkings are performed before main code running (see the \href{https://github.com/safer-r}{safer-r project}): 1) correct \code{lib_path} argument value 2) required functions and related packages effectively present in local R libraries and 3) R classical operators (like \code{"<-"}) not overwritten by another package because of the R scope. Warning: must be set to \code{FALSE} if this function is used inside another "safer" function to avoid pointless multiple checkings.
+#' @param lib_path Vector of characters specifying the absolute pathways of the directories containing the required packages for the function, if not in the default directories. Useful when R packages are not installed in the default directories because of lack of admin rights. More precisely, \code{lib_path} is passed through the \code{new} argument of \code{.libPaths()} so that the new library paths are \code{c(lib_path, .libPaths())}. Warning: \code{.libPaths()} is restored to the initial paths, after function execution. Ignored if \code{NULL} (default) or if the \code{safer_check} argument is \code{FALSE}: only the pathways specified by the current \code{.libPaths()} are used for package calling.
+#' @param error_text Single character string used to add information in error messages returned by the function, notably if the function is inside other functions, which is practical for debugging. Example: \code{error_text = " INSIDE <PACKAGE_1>::<FUNCTION_1> INSIDE <PACKAGE_2>::<FUNCTION_2>."}. If \code{NULL}, converted into \code{""}.
 #' @returns an empty plot.
 #' @examples
 #' # simple example.
@@ -33,6 +33,8 @@ gg_empty <- function(
         safer_check = TRUE,
         error_text = ""
 ){
+
+
 
     #### package name
     package_name <- "saferGG" # write NULL if the function developed is not in a package
@@ -102,7 +104,7 @@ gg_empty <- function(
     ######## end internal error text
 
     ######## error text when embedding
-    # use this in the error_text of safer functions if present below 
+    # use this in the error_text of safer functions if present in your main code 
     embed_error_text  <- base::sub(pattern = "^ERROR IN ", replacement = " INSIDE ", x = error_text_start, ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE)
     embed_error_text  <- base::sub(pattern = "\n*$", replacement = "", x = embed_error_text, ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE) # remove all the trailing \n, because added later
     ######## end error text when embedding
@@ -110,6 +112,40 @@ gg_empty <- function(
     #### end error_text initiation
 
     #### argument primary checking
+
+    ######## arg ... forbidden
+    # nocov start
+    # codecov inactivated because it is an internal control of code writing, impossible to cover with argument values.
+    if("..." %in% arg_names) {
+        # This check is here in case the developer has not correctly written the argument of its function
+        tempo_cat <- base::paste0(
+            error_text_start, 
+            "ARGUMENT ... IS NOT ALLOWED IN SAFER-R FUNCTIONS.\n\nPLEASE, REWRITE YOUR FUNCTION CORRECTLY.", 
+            collapse = NULL, 
+            recycle0 = FALSE
+        )
+        base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
+    }
+    # nocov end
+    ######## end arg ... forbidden
+
+    ######## mandatory arg of safer-r functions
+    mandat_args <- base::c("lib_path", "safer_check", "error_text")
+    tempo_log <- ! mandat_args %in% arg_names
+    if(base::any(x = tempo_log, na.rm = TRUE)) {
+        # This check is here in case the developer has not correctly written the argument of its function
+        tempo_cat <- base::paste0(
+            error_text_start, 
+            "FOLLOWING ARGUMENT", 
+            base::ifelse(test = base::sum(tempo_log, na.rm = TRUE) > 1, yes = "S ARE", no = " IS"), 
+            " MANDATORY IN SAFER-R FUNCTIONS:\n", 
+            base::paste0(mandat_args[tempo_log], collapse = "\n", recycle0 = FALSE), 
+            collapse = NULL, 
+            recycle0 = FALSE
+        )
+        base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
+    }
+    ######## end mandatory arg of safer-r functions
 
     ######## arg with no default values
     ######## end arg with no default values
@@ -178,6 +214,7 @@ gg_empty <- function(
     ######## end management of empty non NULL arguments
 
     ######## management of NA arguments
+    # Mandataory section : argument of safer-r functions cannot have NA as only value, to prevent all(, na.rm = TRUE) or any(, na.rm = TRUE) to return a logical value
     if(base::length(x = arg_user_setting_eval) != 0){
         tempo_log <- base::suppressWarnings(
             expr = base::sapply(
@@ -231,7 +268,7 @@ gg_empty <- function(
 
     ######## check of lib_path
     # must be before any :: or ::: non basic package calling
-    if(safer_check == TRUE){
+    if(safer_check == TRUE){ # this line must be inactivated if you want to use lib_path in the main code (other than in safer functions present in the main code) 
         if( ! base::is.null(x = lib_path)){ #  is.null(NA) returns FALSE so OK.
             if( ! base::all(base::typeof(x = lib_path) == "character", na.rm = TRUE)){ # na.rm = TRUE but no NA returned with typeof (typeof(NA) == "character" returns FALSE)
                 if(base::all(base::mode(x = lib_path) == "function", na.rm = TRUE)){
@@ -262,20 +299,21 @@ gg_empty <- function(
                 )
                 base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
             }else{
-                ini_lib_path <- base:::.libPaths(new = , include.site = TRUE) # normal to have empty new argument
-                base::on.exit(expr = base:::.libPaths(new = ini_lib_path, include.site = TRUE), add = TRUE, after = TRUE) # return to the previous libPaths()
-                base:::.libPaths(new = base::sub(x = lib_path, pattern = "/$|\\\\$", replacement = "", ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE), include.site = TRUE) # base:::.libPaths(new = ) add path to default path. BEWARE: base:::.libPaths() does not support / at the end of a submitted path. The reason of the check and replacement of the last / or \\ in path
-                lib_path <- base:::.libPaths(new = , include.site = TRUE) # normal to have empty new argument
+                ini_lib_path <- base::.libPaths(new = , include.site = TRUE) # normal to have empty new argument
+                base::on.exit(expr = base::.libPaths(new = ini_lib_path, include.site = TRUE), add = TRUE, after = TRUE) # return to the previous libPaths()
+                base::.libPaths(new = base::sub(x = base::c(ini_lib_path, lib_path), pattern = "/$|\\\\$", replacement = "", ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE), include.site = TRUE) # base::.libPaths(new = ) add path to default path. BEWARE: base::.libPaths() does not support / at the end of a submitted path. The reason of the check and replacement of the last / or \\ in path
+                lib_path <- base::.libPaths(new = , include.site = TRUE) # normal to have empty new argument
             }
         }else{
-            lib_path <- base:::.libPaths(new = , include.site = TRUE) # normal to have empty new argument # base:::.libPaths(new = lib_path) # or base:::.libPaths(new = base::c(base:::.libPaths(), lib_path))
+            lib_path <- base::.libPaths(new = , include.site = TRUE) # normal to have empty new argument # base::.libPaths(new = lib_path) # or base::.libPaths(new = base::c(base:::.libPaths(), lib_path))
         }
-    }
+    }  # this line must be inactivated if you want to use lib_path in the main code (other than in safer functions present in the main code) 
     ######## end check of lib_path
 
     ######## check of the required functions from the required packages
     if(safer_check == TRUE){
-        saferDev:::.pack_and_function_check(
+        .pack_and_function_check <- utils::getFromNamespace(x = ".pack_and_function_check", ns = "saferDev", pos = , envir = )
+        .pack_and_function_check(
             fun = base::c(
                 # functions required in this code
                 "ggplot2::aes",
@@ -285,15 +323,11 @@ gg_empty <- function(
                 "ggplot2::ggplot",
                 "ggplot2::ggtitle",
                 "ggplot2::theme_void",
-                "saferDev::arg_check",  
+                "saferDev::arg_check",
                 # end functions required in this code
-
                 # internal functions required in this code
                 "saferDev:::.base_op_check"
                 # end internal functions required in this code
-
-                # functions required in internal functions above (i.e., :::.FUNCTION_NAME), because presence not checked in internal functions
-                # end functions required in internal functions above (i.e., :::.FUNCTION_NAME), because presence not checked in internal functions
             ),
             lib_path = lib_path, # write NULL if your function does not have any lib_path argument
             error_text = embed_error_text
@@ -301,9 +335,17 @@ gg_empty <- function(
     }
     ######## end check of the required functions from the required packages
 
+    ######## escaping CRAN submission NOTE for internal functions
+
+    .base_op_check <- utils::getFromNamespace(x = ".base_op_check", ns = "saferDev", pos = , envir = )
+    # add here in the internal functions that are used in your main code (copy-paste the line above and replace .base_op_check by the name of the internal function
+    # not mandatory if your function is not designed for submission to the CRAN
+
+    ######## end escaping CRAN submission NOTE for internal functions
+
     ######## critical operator checking
     if(safer_check == TRUE){
-        saferDev:::.base_op_check(
+        .base_op_check(
             error_text = embed_error_text
         )
     }
@@ -319,16 +361,14 @@ gg_empty <- function(
     checked_arg_names <- NULL # for function debbuging: used by r_debugging_tools
     arg_check_error_text <- base::paste0("ERROR ", embed_error_text, "\n\n", collapse = NULL, recycle0 = FALSE) # must be used instead of error_text = embed_error_text when several arg_check are performed on the same argument (tempo1, tempo2, see below)
     ee <- base::expression(argum_check <- base::c(argum_check, tempo$problem) , text_check <- base::c(text_check, tempo$text) , checked_arg_names <- base::c(checked_arg_names, tempo$object.name))
-    # add as many lines as below, for each of your arguments of your function in development
-    if( ! base::is.null(x = text)){ # for all arguments that can be NULL, write like this:
+    if( ! base::is.null(x = text)){ 
         tempo <- saferDev::arg_check(data = text, class = "vector", typeof = "character", mode = NULL, length = 1, prop = FALSE, double_as_integer_allowed = TRUE, options = NULL, all_options_in_data = FALSE, na_contain = FALSE, neg_values = TRUE, inf_values = TRUE, print = FALSE, data_name = NULL, data_arg = TRUE, safer_check = FALSE, lib_path = lib_path, error_text = embed_error_text) ; base::eval(expr = ee, envir = base::environment(fun = NULL), enclos = base::environment(fun = NULL))
     }
-    tempo <- saferDev::arg_check(data = text_size, class = NULL, typeof = NULL, mode = "numeric", length = NULL, prop = FALSE, double_as_integer_allowed = FALSE, options = NULL, all_options_in_data = FALSE, na_contain = TRUE, neg_values = TRUE, inf_values = TRUE, print = FALSE, data_name = NULL, data_arg = TRUE, safer_check = FALSE, lib_path = lib_path, error_text = embed_error_text) ; base::eval(expr = ee, envir = base::environment(fun = NULL), enclos = base::environment(fun = NULL)) # copy - paste this line as much as necessary
-    if( ! base::is.null(x = title)){ # for all arguments that can be NULL, write like this:
+    tempo <- saferDev::arg_check(data = text_size, class = "vector", typeof = NULL, mode = "numeric", length = 1, prop = FALSE, double_as_integer_allowed = FALSE, options = NULL, all_options_in_data = FALSE, na_contain = TRUE, neg_values = FALSE, inf_values = FALSE, print = FALSE, data_name = NULL, data_arg = TRUE, safer_check = FALSE, lib_path = lib_path, error_text = embed_error_text) ; base::eval(expr = ee, envir = base::environment(fun = NULL), enclos = base::environment(fun = NULL))
+    if( ! base::is.null(x = title)){ 
         tempo <- saferDev::arg_check(data = title, class = "vector", typeof = "character", mode = NULL, length = 1, prop = FALSE, double_as_integer_allowed = TRUE, options = NULL, all_options_in_data = FALSE, na_contain = FALSE, neg_values = TRUE, inf_values = TRUE, print = FALSE, data_name = NULL, data_arg = TRUE, safer_check = FALSE, lib_path = lib_path, error_text = embed_error_text) ; base::eval(expr = ee, envir = base::environment(fun = NULL), enclos = base::environment(fun = NULL))
     }
-    tempo <- saferDev::arg_check(data = title_size, class = NULL, typeof = NULL, mode = "numeric", length = NULL, prop = FALSE, double_as_integer_allowed = FALSE, options = NULL, all_options_in_data = FALSE, na_contain = TRUE, neg_values = TRUE, inf_values = TRUE, print = FALSE, data_name = NULL, data_arg = TRUE, safer_check = FALSE, lib_path = lib_path, error_text = embed_error_text) ; base::eval(expr = ee, envir = base::environment(fun = NULL), enclos = base::environment(fun = NULL)) # copy - paste this line as much as necessary
-    # end for arguments that need several times the use of arg_check
+    tempo <- saferDev::arg_check(data = title_size, class = "vector", typeof = NULL, mode = "numeric", length = 1, prop = FALSE, double_as_integer_allowed = FALSE, options = NULL, all_options_in_data = FALSE, na_contain = TRUE, neg_values = FALSE, inf_values = FALSE, print = FALSE, data_name = NULL, data_arg = TRUE, safer_check = FALSE, lib_path = lib_path, error_text = embed_error_text) ; base::eval(expr = ee, envir = base::environment(fun = NULL), enclos = base::environment(fun = NULL))
     # lib_path already checked above
     # safer_check already checked above
     # error_text converted to single string above
@@ -343,12 +383,15 @@ gg_empty <- function(
     ######## end argument checking with arg_check()
 
     ######## management of "" in arguments of mode character
+    # optional section: remove the code if you do not want to check if arguments of mode character of your own function cannot contain ""
     tempo_arg <- base::c(
         "text", 
         "title"
         # "lib_path" # inactivated because already checked above
         # "error_text" # inactivated because can be ""
     )
+    # nocov start
+    # codecov inactivated because it is an internal control of code writing, impossible to cover with argument values.
     tempo_log <- ! base::sapply(X = base::lapply(X = tempo_arg, FUN = function(x){base::get(x = x, pos = -1L, envir = base::parent.frame(n = 2), mode = "any", inherits = FALSE)}), FUN = function(x){if(base::is.null(x = x)){base::return(TRUE)}else{base::all(base::mode(x = x) == "character", na.rm = TRUE)}}, simplify = TRUE, USE.NAMES = TRUE) # parent.frame(n = 2) because sapply(lapply())  #  need to test is.null() here
     if(base::any(tempo_log, na.rm = TRUE)){
         # This check is here in case the developer has not correctly fill tempo_arg
@@ -364,6 +407,7 @@ gg_empty <- function(
             recycle0 = FALSE
         )
         base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
+        # nocov end
     }else{
         tempo_log <- base::sapply(X = base::lapply(X = tempo_arg, FUN = function(x){base::get(x = x, pos = -1L, envir = base::parent.frame(n = 2), mode = "any", inherits = FALSE)}), FUN = function(x){base::any(x == "", na.rm = TRUE)}, simplify = TRUE, USE.NAMES = TRUE) # parent.frame(n = 2) because sapply(lapply()).  # for character argument that can also be NULL, if NULL -> returns FALSE. Thus no need to test is.null()
         if(base::any(tempo_log, na.rm = TRUE)){
@@ -384,9 +428,6 @@ gg_empty <- function(
 
     #### second round of checking and data preparation
 
-    ######## reserved words
-    ######## end reserved words
-
     ######## code that protects set.seed() in the global environment
     ######## end code that protects set.seed() in the global environment
 
@@ -394,8 +435,12 @@ gg_empty <- function(
     ######## end warning initiation
 
     ######## graphic device checking
+    # optional section: remove the code if no graphics used in your functions
     # check the number of graphic devices on exit
     dev_list <- grDevices::dev.list() 
+    # This check is here in case the developer has not correctly fill tempo_arg
+    # nocov start
+    # codecov inactivated because it is an internal control of code writing, impossible to cover with argument values.
     base::on.exit(
         expr = if(base::length(x = dev_list) != base::length(x = grDevices::dev.list())){
             tempo_cat <- base::paste0(
@@ -417,10 +462,12 @@ gg_empty <- function(
                 recycle0 = FALSE
             )
             base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
+
         }, 
         add = TRUE, 
         after = TRUE
     )
+    # nocov end
     # end check the number of graphic devices on exit
     # restore the graphic parameters on exit
     if(base::length(x = grDevices::dev.list()) > 0){
@@ -431,6 +478,17 @@ gg_empty <- function(
     ######## end graphic device checking
 
     ######## other checkings
+    # optional section: remove the code if no graphics used in your functions
+    # Example of other checking:
+    # if(base::length(x = data) == 0){
+    #     tempo_cat <- base::paste0(
+    #         error_text_start, 
+    #         "data ARGUMENT CANNOT BE LENGTH 0.", 
+    #         collapse = NULL, 
+    #         recycle0 = FALSE
+    #     )
+    #     base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
+    # }
     ######## end other checkings
 
     #### end second round of checking and data preparation
