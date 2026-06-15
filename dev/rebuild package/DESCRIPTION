@@ -1,6 +1,6 @@
-Package: saferDev
+Package: saferGG
 Type: Package
-Title: Function and Pipeline Development
+Title: ggplot2 graphics
 Version: 1.0.0
 Date: 2026-06-02
 Authors@R: c(
