@@ -1044,46 +1044,7 @@ gg_box <- function(
     ######## end warning initiation
 
     ######## graphic device checking
-    # optional section: remove the code if no graphics used in your functions
-    # check the number of graphic devices on exit
-    dev_list <- grDevices::dev.list() 
-    # This check is here in case the developer has not correctly fill tempo_arg
-    # nocov start
-    # codecov inactivated because it is an internal control of code writing, impossible to cover with argument values.
-    base::on.exit(
-        expr = if(base::length(x = dev_list) != base::length(x = grDevices::dev.list())){
-            tempo_cat <- base::paste0(
-                "INTERNAL ERROR IN THE BACKBONE PART OF ", 
-                intern_error_text_start, 
-                "SOME GRAPHIC DEVICES WERE OPENED BY ", 
-                function_name, 
-                " BUT NOT CLOSED BEFORE END OF EXECUTION.\n\nIF IT IS EXPECTED, JUST REMOVE THE CODE DISPLAYING THIS MESSAGE INSIDE ", 
-                function_name, 
-                ".\n\nOTHERWISE, THE PROBLEM COMES FROM OPENED GRAPHIC DEVICES BEFORE RUNNING ", 
-                function_name, 
-                " (n = ", 
-                base::length(x = dev_list), 
-                ") AND AFTER (n = ", 
-                base::length(x = grDevices::dev.list()), 
-                ").", 
-                intern_error_text_end, 
-                collapse = NULL, 
-                recycle0 = FALSE
-            )
-            base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", collapse = NULL, recycle0 = FALSE), call. = FALSE, domain = NULL)
-
-        }, 
-        add = TRUE, 
-        after = TRUE
-    )
-    # nocov end
-    # end check the number of graphic devices on exit
-    # restore the graphic parameters on exit
-    if(base::length(x = grDevices::dev.list()) > 0){
-        par_ini <- base::suppressWarnings(expr = graphics::par(no.readonly = TRUE), classes = "warning") # to recover the present graphical parameters
-        base::on.exit(expr = base::suppressWarnings(expr = graphics::par(par_ini, no.readonly = TRUE), classes = "warning"), add = TRUE, after = TRUE)
-    }
-    # end restore the graphic parameters on exit
+    #Does not wrok for gg_box
     ######## end graphic device checking
 
     ######## other checkings
@@ -1825,7 +1786,7 @@ gg_box <- function(
     dot.coord <- tempo.graph.info.ini$data[[1]]
     dot.coord$x <- base::as.numeric(dot.coord$x) # because weird class
     dot.coord$PANEL <- base::as.numeric(dot.coord$PANEL) # because numbers as levels. But may be a problem is facet are reordered ?
-    tempo.mean <- base::aggregate(x = dot.coord$y, by = base::list(dot.coord$group, dot.coord$PANEL), FUN = mean, na.rm = TRUE)
+    tempo.mean <- stats::aggregate(x = dot.coord$y, by = base::list(dot.coord$group, dot.coord$PANEL), FUN = mean, na.rm = TRUE)
     base::names(tempo.mean)[base::names(tempo.mean) == "x"] <- "MEAN"
     base::names(tempo.mean)[base::names(tempo.mean) == "Group.1"] <- "BOX"
     base::names(tempo.mean)[base::names(tempo.mean) == "Group.2"] <- "PANEL"
@@ -2109,7 +2070,7 @@ gg_box <- function(
                 tempo_cat <- base::paste0("INTERNAL CODE ERROR IN ", function_name, "\nTHE merge() FUNCTION DID NOT RETURN A CORRECT dot.coord.rd1 DATA FRAME. CODE HAS TO BE MODIFIED")
                 base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", base::ifelse(base::is.null(warn), "", base::paste0("IN ADDITION\nWARNING", base::ifelse(warn_count > 1, "S", ""), ":\n\n", warn))), call. = FALSE) # == in stop() to be able to add several messages between ==
             }
-            sampled.dot.jitter <- if(base::nrow(dot.coord.rd1)== 1L){base::runif(n = base::nrow(dot.coord.rd1), min = - dot.jitter / 2, max = dot.jitter / 2)}else{base::sample(x = base::runif(n = base::nrow(dot.coord.rd1), min = - dot.jitter / 2, max = dot.jitter / 2), size = base::nrow(dot.coord.rd1), replace = FALSE)}
+            sampled.dot.jitter <- if(base::nrow(dot.coord.rd1)== 1L){stats::runif(n = base::nrow(dot.coord.rd1), min = - dot.jitter / 2, max = dot.jitter / 2)}else{base::sample(x = stats::runif(n = base::nrow(dot.coord.rd1), min = - dot.jitter / 2, max = dot.jitter / 2), size = base::nrow(dot.coord.rd1), replace = FALSE)}
             dot.coord.rd2 <- base::data.frame(dot.coord.rd1, dot.x = dot.coord.rd1$x.y + sampled.dot.jitter, stringsAsFactors = TRUE) # set the dot.jitter thanks to runif and dot.jitter range. Then, send the coord of the boxes into the coord data.frame of the dots (in the column x.y)
             if(base::length(categ)== 1L){
                 tempo.data1 <- base::unique(base::data.frame(data1[categ[1]], group = base::as.integer(data1[, categ[1]]), stringsAsFactors = TRUE)) # categ[1] is factor
@@ -2433,8 +2394,8 @@ gg_box <- function(
             coord.names <- base::c(coord.names, "mean")
         }
         base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::scale_discrete_manual(aesthetics = "fill", name = box.legend.name, values = base::rep(NA, base::length(base::unique(data1[, categ[base::length(categ)]]))))) #, guide = ggplot2::guide_legend(override.aes = list(color = categ.color)))) # values are the values of color (which is the border color in geom_box. WARNING: values = categ.color takes the numbers to make the colors if categ.color is a factor
-        base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::scale_discrete_manual(aesthetics = "color", name = box.legend.name, values = if(base::length(categ.color)== 1L){base::rep(categ.color, base::length(base::unique(data1[, categ[base::length(categ)]])))}else{categ.color}, guide = ggplot2::guide_legend(override.aes = base::list(alpha = if(plot == TRUE & ((base::length(base::dev.list()) > 0 & base::names(base::dev.cur()) == "windows") | (base::length(base::dev.list()) == 0L & base::Sys.info()["sysname"] == "Windows"))){1}else{box.alpha})))) # , guide = ggplot2::guide_legend(override.aes = list(color = as.character(categ.color))))) # values are the values of color (which is the border color in geom_box. WARNING: values = categ.color takes the numbers to make the colors if categ.color is a factor
-        if(plot == TRUE & ((base::length(base::dev.list()) > 0 & base::names(base::dev.cur()) == "windows") | (base::length(base::dev.list()) == 0L & base::Sys.info()["sysname"] == "Windows"))){ # if any Graph device already open and this device is "windows", or if no Graph device opened yet and we are on windows system -> prevention of alpha legend bug on windows using value 1
+        base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::scale_discrete_manual(aesthetics = "color", name = box.legend.name, values = if(base::length(categ.color)== 1L){base::rep(categ.color, base::length(base::unique(data1[, categ[base::length(categ)]])))}else{categ.color}, guide = ggplot2::guide_legend(override.aes = base::list(alpha = if(plot == TRUE & ((base::length(grDevices::dev.list()) > 0 & base::names(grDevices::dev.cur()) == "windows") | (base::length(grDevices::dev.list()) == 0L & base::Sys.info()["sysname"] == "Windows"))){1}else{box.alpha})))) # , guide = ggplot2::guide_legend(override.aes = list(color = as.character(categ.color))))) # values are the values of color (which is the border color in geom_box. WARNING: values = categ.color takes the numbers to make the colors if categ.color is a factor
+        if(plot == TRUE & ((base::length(grDevices::dev.list()) > 0 & base::names(grDevices::dev.cur()) == "windows") | (base::length(grDevices::dev.list()) == 0L & base::Sys.info()["sysname"] == "Windows"))){ # if any Graph device already open and this device is "windows", or if no Graph device opened yet and we are on windows system -> prevention of alpha legend bug on windows using value 1
             # to avoid a bug on windows: if alpha argument is different from 1 for lines (transparency), then lines are not correctly displayed in the legend when using the R GUI (bug https://github.com/tidyverse/ggplot2/issues/2452). No bug when using a pdf
             warn_count <- warn_count + 1
             tempo_warn <- base::paste0("(", warn_count,") GRAPHIC DEVICE USED ON A WINDOWS SYSTEM ->\nTRANSPARENCY OF THE LINES IS INACTIVATED IN THE LEGEND TO PREVENT A WINDOWS DEPENDENT BUG (SEE https://github.com/tidyverse/ggplot2/issues/2452)\nTO OVERCOME THIS ON WINDOWS, USE ANOTHER DEVICE (pdf() FOR INSTANCE)")
@@ -2478,9 +2439,9 @@ gg_box <- function(
                     tempo.stat.ini <- dot.coord.tidy3
                     tempo.stat.ini$x.y <- tempo.stat.ini$x.x # this is just to be able to use tempo.stat.ini$x.y for untidy or tidy dots (remember that dot.coord.tidy3$x.y is not good, see above)
                 }
-                stat.coord1 <- base::aggregate(x = tempo.stat.ini["y"], by = {x.env <- if(base::length(categ)== 1L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]])}else if(base::length(categ) == 2L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]], tempo.stat.ini[, categ[2]])} ;base::names(x.env) <- if(base::length(categ)== 1L){base::c("group", "PANEL", "x.y", categ[1])}else if(base::length(categ) == 2L){base::c("group", "PANEL", "x.y", categ[1], categ[2])} ; x.env}, FUN = min, na.rm = TRUE)
+                stat.coord1 <- stats::aggregate(x = tempo.stat.ini["y"], by = {x.env <- if(base::length(categ)== 1L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]])}else if(base::length(categ) == 2L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]], tempo.stat.ini[, categ[2]])} ;base::names(x.env) <- if(base::length(categ)== 1L){base::c("group", "PANEL", "x.y", categ[1])}else if(base::length(categ) == 2L){base::c("group", "PANEL", "x.y", categ[1], categ[2])} ; x.env}, FUN = min, na.rm = TRUE)
                 base::names(stat.coord1)[base::names(stat.coord1) == "y"] <- "dot.min"
-                stat.coord2 <- base::aggregate(x = tempo.stat.ini["y"], by = {x.env <- if(base::length(categ)== 1L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]])}else if(base::length(categ) == 2L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]], tempo.stat.ini[, categ[2]])} ; base::names(x.env) <- if(base::length(categ)== 1L){base::c("group", "PANEL", "x.y", categ[1])}else if(base::length(categ) == 2L){base::c("group", "PANEL", "x.y", categ[1], categ[2])} ; x.env}, FUN = max, na.rm = TRUE)
+                stat.coord2 <- stats::aggregate(x = tempo.stat.ini["y"], by = {x.env <- if(base::length(categ)== 1L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]])}else if(base::length(categ) == 2L){base::list(tempo.stat.ini$group, tempo.stat.ini$PANEL, tempo.stat.ini$x.y, tempo.stat.ini[, categ[1]], tempo.stat.ini[, categ[2]])} ; base::names(x.env) <- if(base::length(categ)== 1L){base::c("group", "PANEL", "x.y", categ[1])}else if(base::length(categ) == 2L){base::c("group", "PANEL", "x.y", categ[1], categ[2])} ; x.env}, FUN = max, na.rm = TRUE)
                 base::names(stat.coord2) <- base::paste0(base::names(stat.coord2), "_from.dot.max")
                 base::names(stat.coord2)[base::names(stat.coord2) == "y_from.dot.max"] <- "dot.max"
                 stat.coord3 <- base::cbind(box.coord[base::order(box.coord$group, box.coord$PANEL), ], stat.coord1[base::order(stat.coord1$group, stat.coord1$x.y), ], stat.coord2[base::order(stat.coord2$group, stat.coord2$x.y), ], stringsAsFactors = TRUE) # 
@@ -2655,7 +2616,7 @@ gg_box <- function(
     
     # legend management
     if( ! base::is.null(legend.width)){
-        legend.final <- saferGG::gg_get_legend(ggplot_built = bef.final.plot, fun.name = function_name, lib_path = lib_path) # get legend
+        legend.final <- saferGG::gg_get_legend(ggplot_built = bef.final.plot, lib_path = lib_path) # get legend
         base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::guides(fill = "none", color = "none", alpha = "none")) # inactivate the initial legend
         if(base::is.null(legend.final) & plot == TRUE){ # even if any(unlist(legend.disp)) is TRUE
             legend.final <- ggplot2::ggplot()+ggplot2::theme_void() # empty graph instead of legend
@@ -2697,7 +2658,25 @@ gg_box <- function(
     }
     # end drawing
     
-    
+
+    #### end main code
+
+    #### warning output
+    # must be before return()
+    if( ! base::is.null(x = warn)){
+        base::on.exit(
+            expr = base::warning(
+                base::paste0(
+                    base::sub(pattern = "^ERROR IN ", replacement = "FROM ", x = error_text_start, ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE), 
+                    warn, 
+                    collapse = NULL, 
+                    recycle0 = FALSE
+                ), call. = FALSE, immediate. = FALSE, noBreaks. = FALSE, domain = NULL
+            ), add = TRUE, after = TRUE
+        )
+    }
+    base::on.exit(expr = base::options(warning.length = ini_warning_length), add = TRUE, after = TRUE)
+    #### end warning output
     
     # output
     # following lines inactivated because of problem in warn.recov and message.recov
@@ -2708,10 +2687,6 @@ gg_box <- function(
     # }else if( ! (base::is.null(warn) & base::is.null(message.recov)) & base::is.null(warn.recov)){
     # warn <- paste0(warn, "\n\n", if(length(message.recov) > 0){paste0(paste0("MESSAGES FROM ggplot2 FUNCTIONS: ", unique(message.recov), collapse = "\n\n"), "\n\n")})
     # }
-    if(warn.print == TRUE & ! base::is.null(warn)){
-        base::on.exit(base::warning(base::paste0("FROM ", function_name, ":\n\n", warn), call. = FALSE))
-    }
-    base::on.exit(exp = base::options(warning.length = ini.warning.length), add = TRUE)
     if(return == TRUE){
         tempo.output <- ggplot2::ggplot_build(fin.plot)
         tempo.output$data <- tempo.output$data[-1] # remove the first data because corresponds to the initial empty boxplot
@@ -2742,10 +2717,11 @@ gg_box <- function(
             ggplot = if(return.ggplot == TRUE){fin.plot}else{NULL}, # fin.plot plots the graph if return == TRUE
             gtable = if(return.gtable == TRUE){grob.save}else{NULL} 
         )
-        base::return(output) # this plots the graph if return.ggplot is TRUE and if no assignment
+        #### output
+        base::return(output)
+        #### end output
     }
-    # end output
-    # end main code
+
 }
 
 
