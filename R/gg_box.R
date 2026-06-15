@@ -1,6 +1,6 @@
 # Error: class order not good when a class is removed due to NA
 # Error: line 136 in check 20201126 with add argument
-# Solve this: sometimes error messages can be more than the max display (8170). Thus, check every ERROR MESSAGE, and trunck the message if to big. In addition, add at the begining of the warning message that it is too long and see the $warn output for complete message. Add also this into fun_scatter
+# Solve this: sometimes error messages can be more than the max display (8170). Thus, check every ERROR MESSAGE, and trunck the message if to big. In addition, add at the begining of the warning message that it is too long and see the $warn output for complete message. Add also this into gg_scatter
 # add dot.shape ? See with available aesthetic layers
 # rasterise: https://cran.r-project.org/web/packages/ggrastr/vignettes/Raster_geoms.html
 # add horizontal argument and deal any conflict with vertical argument. Start with horizontal = NULL as default. If ! is.null() -> convert vertical if required
@@ -630,12 +630,15 @@ gg_box <- function(
                 "scales::rescale_none",
                 "scales::trans_format",
                 "saferDev::arg_check", 
-                "saferTool::comp_2d",  
+                "saferTool::comp_1d", 
+                "saferTool::comp_2d", 
                 "saferTool::name_change", 
                 "saferTool::round2", 
                 "saferGraph::scale2",
                 "saferGraph::inter_ticks", 
                 "saferGG::gg_palette", 
+                "saferGG::gg_just", 
+                "saferGG::gg_get_legend", 
                 # end functions required in this code
                 # internal functions required in this code
                 "saferDev:::.base_op_check"
@@ -1554,7 +1557,7 @@ gg_box <- function(
                 if( ! base::identical(ini.dot.categ, categ[base::length(categ)])){
                     tempo_cat <- base::paste0("ERROR IN ", function_name, "\nWHEN dot.color ARGUMENT IS \"same\", THE COLUMN NAME IN dot.categ ARGUMENT MUST BE IDENTICAL TO THE LAST COLUMN NAME IN categ ARGUMENT. HERE IT IS:\ndot.categ: ", base::paste(ini.dot.categ, collapse = " "), "\ncateg: ", base::paste(categ, collapse = " "))
                     base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", base::ifelse(base::is.null(warn), "", base::paste0("IN ADDITION\nWARNING", base::ifelse(warn_count > 1, "S", ""), ":\n\n", warn))), call. = FALSE) # == in stop() to be able to add several messages between ==
-                }else if( ! fun_comp_1d(base::unlist(categ.class.order[base::length(categ)]), dot.categ.class.order)$identical.content){
+                }else if( ! saferTool::comp_1d(base::unlist(categ.class.order[base::length(categ)]), dot.categ.class.order)$identical.content){
                     tempo_cat <- base::paste0("ERROR IN ", function_name, "\nWHEN dot.color ARGUMENT IS \"same\",\nLAST COMPARTMENT OF categ.class.order ARGUMENT AND dot.categ.class.order ARGUMENT CANNOT BE DIFFERENT:\nLAST COMPARTMENT OF categ.class.order: ", base::paste(base::unlist(categ.class.order[base::length(categ)]), collapse = " "), "\ndot.categ.class.order: ", base::paste(dot.categ.class.order, collapse = " "))
                     base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", base::ifelse(base::is.null(warn), "", base::paste0("IN ADDITION\nWARNING", base::ifelse(warn_count > 1, "S", ""), ":\n\n", warn))), call. = FALSE) # == in stop() to be able to add several messages between ==
                 }
@@ -1804,7 +1807,7 @@ gg_box <- function(
         base::stop(base::paste0("\n\n================\n\n", tempo_cat, "\n\n================\n\n", base::ifelse(base::is.null(warn), "", base::paste0("IN ADDITION\nWARNING", base::ifelse(warn_count > 1, "S", ""), ":\n\n", warn))), call. = FALSE) # == in stop() to be able to add several messages between ==
     }
     if( ! base::is.null(stat.pos)){
-        stat.just <- fun_gg_just(
+        stat.just <- saferGG::gg_just(
             angle = stat.angle, 
             pos = base::ifelse(
                 vertical == TRUE, 
@@ -1948,7 +1951,7 @@ gg_box <- function(
     base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::ylab(if(base::is.null(y.lab)){y}else{y.lab}))
     base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::ggtitle(title))
     # text angle management
-    axis.just <- fun_gg_just(angle = x.angle, pos = base::ifelse(vertical == TRUE, "bottom", "left"), kind = "axis")
+    axis.just <- saferGG::gg_just(angle = x.angle, pos = base::ifelse(vertical == TRUE, "bottom", "left"), kind = "axis")
     # end text angle management
     add.check <- TRUE
     if( ! base::is.null(add)){ # if add is NULL, then = 0
@@ -2652,7 +2655,7 @@ gg_box <- function(
     
     # legend management
     if( ! base::is.null(legend.width)){
-        legend.final <- fun_gg_get_legend(ggplot_built = bef.final.plot, fun.name = function_name, lib_path = lib_path) # get legend
+        legend.final <- saferGG::gg_get_legend(ggplot_built = bef.final.plot, fun.name = function_name, lib_path = lib_path) # get legend
         base::assign(base::paste0(tempo.gg.name, tempo.gg.count <- tempo.gg.count + 1), ggplot2::guides(fill = "none", color = "none", alpha = "none")) # inactivate the initial legend
         if(base::is.null(legend.final) & plot == TRUE){ # even if any(unlist(legend.disp)) is TRUE
             legend.final <- ggplot2::ggplot()+ggplot2::theme_void() # empty graph instead of legend

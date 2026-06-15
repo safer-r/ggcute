@@ -67,7 +67,7 @@ The different *saferGG* releases are tagged [here](https://github.com/safer-r/sa
 
 ```r
 install.packages("remotes")
-remotes::install_github("https://github.com/safer-r/saferGG") # or open R as admin and remotes::install_github("https://github.com/safer-r/saferGG", lib = "C:/Program Files/R/R-4.4.2/library")
+remotes::install_github("https://github.com/safer-r/saferGG") # or open R as admin and remotes::install_github("https://github.com/safer-r/saferGG", lib = "C:/Program Files/R/R-4.6.0/library")
 ```
 
 Older versions can be installed like this:
